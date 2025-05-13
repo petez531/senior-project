@@ -9,8 +9,9 @@ import "vendor:raylib"
 SCREEN_WIDTH :: 800
 SCREEN_HEIGHT :: 450
 PEG_AMOUNT :: 50
-GRAVITY :: 300
+GRAVITY :: 500
 BALL_YSPEED :: 200
+BALL_XSPEED :: 200
 BALL_START_X_POS :: 400
 BALL_START_Y_POS :: 50
 BALL_SIZE :: 5
@@ -56,6 +57,11 @@ drawBall :: proc(ball: Ball) {
     raylib.DrawCircle(i32(ball.xpos), i32(ball.ypos), BALL_SIZE, raylib.RED)
 }
 
+// Gets the angle between the ball and the mouse position
+getBallAngle :: proc(mouse_xpos: f32, mouse_ypos: f32) -> f32{
+    return math.atan((mouse_xpos - BALL_START_X_POS) / (mouse_ypos - BALL_START_Y_POS))
+}
+
 main :: proc() {
     raylib.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Window")
     raylib.SetTargetFPS(30)
@@ -70,17 +76,31 @@ main :: proc() {
         // Update
         mouse_xpos := f32(raylib.GetMouseX())
         mouse_ypos := f32(raylib.GetMouseY())
+        mouse_angle := getBallAngle(mouse_xpos, mouse_ypos)
 
 
+        // Activates the ball
         if raylib.IsMouseButtonPressed(.LEFT) && !ball.isActive{
             ball.isActive = true
             ball.yspeed = BALL_YSPEED
+            ball.xspeed = BALL_XSPEED * mouse_angle
         }
 
+        // Deals with ball physics
         if ball.isActive {
+            ball.yspeed += GRAVITY * deltaTime
+            if ball.xspeed > 0 {
+                ball.xspeed -= 5
+            }
+            else if ball.xspeed < 0 {
+                ball.xspeed += 5
+            }
+
+            // Moves ball
             ball.ypos += ball.yspeed * deltaTime
             ball.xpos += ball.xspeed * deltaTime
 
+            // Resets ball to start position
             if (ball.ypos + BALL_SIZE) > SCREEN_HEIGHT {
                 ball.xpos = BALL_START_X_POS
                 ball.ypos = BALL_START_Y_POS
@@ -88,10 +108,7 @@ main :: proc() {
                 ball.yspeed = 0
                 ball.isActive = false
             }
-            if (ball.xpos - BALL_SIZE) < 0 {
-                ball.xspeed *= -1
-            }
-            if (ball.xpos + BALL_SIZE) > SCREEN_WIDTH {
+            if (ball.xpos - BALL_SIZE) < 0 || (ball.xpos + BALL_SIZE) > SCREEN_WIDTH{
                 ball.xspeed *= -1
             }
         }
